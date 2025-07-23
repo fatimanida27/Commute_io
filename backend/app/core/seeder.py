@@ -27,7 +27,7 @@ def seed_database():
         # Check if data already exists
         existing_users = db.query(User).count()
         if existing_users > 0:
-            logger.info("Database already has data, skipping seeding")
+            logger.info(f"Database already has {existing_users} users, skipping seeding")
             return
         
         logger.info("Seeding database with initial data...")

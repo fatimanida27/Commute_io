@@ -16,9 +16,17 @@ async def lifespan(app: FastAPI):
     # Create database tables
     Base.metadata.create_all(bind=engine)
     
-    # Seed database with initial data
-    from app.core.seeder import seed_database
-    seed_database()
+    # Seed database with initial data (with error handling)
+    try:
+        from app.core.seeder import seed_database
+        seed_database()
+    except Exception as e:
+        print(f"Database seeding failed: {e}")
+        print("This might be due to missing columns in existing database.")
+        print("Please run the database migration:")
+        print("1. For PostgreSQL: Execute backend/postgresql_migration.sql")
+        print("2. For SQLite/development: Run 'python -m alembic upgrade head'")
+        # Don't fail startup, just log the error
     
     yield
 
