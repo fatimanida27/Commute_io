@@ -60,28 +60,9 @@ export default function CreateRecurringRideScreen() {
         setSelectedCarId(userCars[0].id);
       }
     } catch (error) {
-      console.warn('Backend not available, using mock car data for demo');
-      // Provide mock car data for demonstration
-      const mockCars = [
-        {
-          id: 1,
-          make: "Tesla",
-          model: "Model 3",
-          year: 2022,
-          color: "White",
-          seats: 5,
-        },
-        {
-          id: 2,
-          make: "Honda",
-          model: "Civic",
-          year: 2021,
-          color: "Blue",
-          seats: 5,
-        }
-      ];
-      setCars(mockCars);
-      setSelectedCarId(mockCars[0].id);
+      console.error('Error loading cars:', error);
+      Alert.alert('Error', 'Failed to load your cars. Please add a car first.');
+      setCars([]);
     } finally {
       setLoadingCars(false);
     }

@@ -15,6 +15,11 @@ from app.db.models import *
 async def lifespan(app: FastAPI):
     # Create database tables
     Base.metadata.create_all(bind=engine)
+    
+    # Seed database with initial data
+    from app.core.seeder import seed_database
+    seed_database()
+    
     yield
 
 

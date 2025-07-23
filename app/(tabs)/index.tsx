@@ -1,376 +1,260 @@
-import React, { useState } from 'react';
-import { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, Settings, Menu, MessageCircle, Car, Plus, Navigation } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { ridesAPI, usersAPI } from '../../services/api';
-
-interface Ride {
-  id: number;
-  start_time: string;
-  seats_available: number;
-  start_location: string;
-  end_location: string;
-}
+import { Plus, Calendar, Car, MapPin, Clock, User, MessageCircle } from 'lucide-react-native';
+import { useAuth } from '../../hooks/useAuth';
+import { useRides } from '../../hooks/useRides';
+import { useRecurringRides } from '../../hooks/useRecurringRides';
 
 export default function HomeScreen() {
-  const [upcomingDriverRides, setUpcomingDriverRides] = useState<Ride[]>([]);
-  const [selectedMode, setSelectedMode] = useState('Driver');
-  const [searchText, setSearchText] = useState('');
-  const [rides, setRides] = useState([]);
-  type UserProfile = {
-    is_driver: boolean;
-    is_rider: boolean;
-    // add other properties as needed
-  };
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const [refreshing, setRefreshing] = useState(false);
+  
+  const {
+    rides,
+    myRides,
+    loading: ridesLoading,
+    searchRides,
+    getMyRides,
+    formatDateTime,
+    getTimeUntilRide,
+  } = useRides();
 
-  const handleSettings = () => {
-    router.push('/(tabs)/setting');
-  };
-
-   const handleOfferRide = () => {
-    router.push('/(tabs)/offer-ride');
-  };
-
-  const handleRideChat = () => {
-    // Navigate to chat screen
-    router.push('/(tabs)/ride-chat');
-  };
-
-  const handleEditProfile = () => {
-    router.push('/(tabs)/profile');
-  };
+  const {
+    myRecurringRides,
+    loading: recurringLoading,
+    getMyRecurringRides,
+    getDayLabel,
+  } = useRecurringRides();
 
   useEffect(() => {
-  const loadUserProfile = async () => {
-    try {
-      const profileData = await usersAPI.getProfile();
-      setUserProfile(profileData);
-    } catch (error) {
-      console.error('Failed to load user profile:', error);
-    }
-  };
-  loadUserProfile();
-}, []); // load profile only once
-
-useEffect(() => {
-  const loadRides = async () => {
-    if (!userProfile || !hasRequiredRole()) return;
-
-    try {
-      setLoading(true);
-
-      if (selectedMode === 'Driver' && userProfile.is_driver) {
-        const driverRides = await ridesAPI.getMyRides();
-        setUpcomingDriverRides(driverRides);
-        console.log('Driver rides received:', driverRides[0]);
-      }
-
-      if (selectedMode === 'Rider' && userProfile.is_rider) {
-        const ridesData = await ridesAPI.searchRides(10);
-        setRides(ridesData);
-      }
-    } catch (error) {
-      console.error('Error loading rides:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  loadRides();
-}, [selectedMode, userProfile]); // now this won't cause loop since userProfile is set only once
-
+    loadData();
+  }, []);
 
   const loadData = async () => {
-  try {
-    setLoading(true);
-    console.log('Starting data loading...');
-    
-    const profileData = await usersAPI.getProfile();
-    console.log('Profile data received:', profileData);
-    setUserProfile(profileData);
-    
-    if (selectedMode === 'Driver' && profileData?.is_driver) {
-      console.log('Fetching driver rides...');
-      const driverRides = await ridesAPI.getMyRides();
-      console.log('Driver rides received:', driverRides);
-      setUpcomingDriverRides(driverRides);
+    try {
+      await Promise.all([
+        searchRides(3), // Get only 3 recent rides for home screen
+        getMyRides(),
+        getMyRecurringRides(),
+      ]);
+    } catch (error) {
+      console.error('Error loading home data:', error);
     }
-    
-    if (selectedMode === 'Rider') {
-      console.log('Fetching rides for rider...');
-      const ridesData = await ridesAPI.searchRides(10);
-      console.log('Rides data received:', ridesData);
-      setRides(ridesData);
-    }
-  } catch (error) {
-    console.error('Error loading data:', error);
-  } finally {
-    console.log('Data loading completed');
-    setLoading(false);
-  }
-};
-
-  const suggestedRides = [
-    {
-      id: 1,
-      destination: 'To Downtown',
-      time: '10:00 AM',
-      image: 'https://images.pexels.com/photos/466685/pexels-photo-466685.jpeg?auto=compress&cs=tinysrgb&w=400',
-    },
-    {
-      id: 2,
-      destination: 'To Airport',
-      time: '11:30 AM',
-      image: 'https://images.pexels.com/photos/378570/pexels-photo-378570.jpeg?auto=compress&cs=tinysrgb&w=400',
-    },
-    {
-      id: 3,
-      destination: 'To University',
-      time: '1:00 PM',
-      image: 'https://images.pexels.com/photos/1105766/pexels-photo-1105766.jpeg?auto=compress&cs=tinysrgb&w=400',
-    },
-  ];
-
-  const upcomingRides = [
-    {
-      id: 1,
-      destination: 'To Downtown',
-      time: '10:00 AM',
-    },
-    {
-      id: 2,
-      destination: 'To Airport',
-      time: '11:30 AM',
-    },
-  ];
-
-  const driverStats = [
-    {
-      title: 'Rides Given',
-      value: '5',
-    },
-    {
-      title: 'Total Distance',
-      value: '120 km',
-    },
-    {
-      title: 'Avg. Rating',
-      value: '4.8',
-    },
-  ];
-
-   const hasRequiredRole = () => {
-    if (!userProfile) return false;
-    return selectedMode === 'Driver' ? userProfile.is_driver : userProfile.is_rider;
   };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  };
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const quickActions = [
+    {
+      title: 'Find a Ride',
+      subtitle: 'Search available rides',
+      icon: Car,
+      color: '#4ECDC4',
+      onPress: () => router.push('/(tabs)/rides'),
+    },
+    {
+      title: 'Offer a Ride',
+      subtitle: 'Share your commute',
+      icon: Plus,
+      color: '#44A08D',
+      onPress: () => router.push('/offer-ride'),
+    },
+    {
+      title: 'Schedule Rides',
+      subtitle: 'Set up recurring rides',
+      icon: Calendar,
+      color: '#6366F1',
+      onPress: () => router.push('/create-recurring-ride'),
+    },
+    {
+      title: 'Messages',
+      subtitle: 'Chat with ride partners',
+      icon: MessageCircle,
+      color: '#EF4444',
+      onPress: () => router.push('/(tabs)/messages'),
+    },
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={['#4ECDC4']}
+            tintColor="#4ECDC4"
+          />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.appTitle}>Commute_io</Text>
-          <TouchableOpacity style={styles.settingsButton}
-            onPress={handleSettings}
-          >
-            <Settings size={24} color="#2d3748" />
-          </TouchableOpacity>
-        </View>
-
-        {loading && (
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Loading...</Text>
+          <View style={styles.greetingContainer}>
+            <Text style={styles.greeting}>{getGreeting()}</Text>
+            <Text style={styles.userName}>{user?.name || 'Rider'}!</Text>
           </View>
-        )}
-
-        {/* Mode Toggle */}
-        <View style={styles.modeToggleContainer}>
-          <TouchableOpacity
-            style={[
-              styles.modeButton,
-              selectedMode === 'Rider' && styles.activeModeButton
-            ]}
-            onPress={() => setSelectedMode('Rider')}
+          <TouchableOpacity 
+            style={styles.profileButton}
+            onPress={() => router.push('/(tabs)/profile')}
           >
-            <Text style={[
-              styles.modeButtonText,
-              selectedMode === 'Rider' && styles.activeModeButtonText
-            ]}>
-              Rider
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.modeButton,
-              selectedMode === 'Driver' && styles.activeModeButton
-            ]}
-            onPress={() => setSelectedMode('Driver')}
-          >
-            <Text style={[
-              styles.modeButtonText,
-              selectedMode === 'Driver' && styles.activeModeButtonText
-            ]}>
-              Driver
-            </Text>
+            <User size={24} color="#4ECDC4" />
           </TouchableOpacity>
         </View>
 
-{userProfile && !hasRequiredRole() ? (
-          <View style={styles.roleWarningContainer}>
-            <Text style={styles.roleWarningText}>
-              {selectedMode === 'Driver'
-                ? "You're not registered as a driver yet."
-                : "You're not registered as a rider yet."}
-            </Text>
-            <Text style={styles.roleWarningSubtext}>
-              Update your profile to access {selectedMode} features.
-            </Text>
-            <TouchableOpacity 
-              style={styles.updateProfileButton}
-              onPress={handleEditProfile}
-            >
-              <Text style={styles.updateProfileButtonText}>
-                Update Profile
-              </Text>
+        {/* Quick Actions */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.actionsGrid}>
+            {quickActions.map((action, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[styles.actionCard, { borderLeftColor: action.color }]}
+                onPress={action.onPress}
+              >
+                <View style={[styles.actionIcon, { backgroundColor: `${action.color}20` }]}>
+                  <action.icon size={24} color={action.color} />
+                </View>
+                <View style={styles.actionContent}>
+                  <Text style={styles.actionTitle}>{action.title}</Text>
+                  <Text style={styles.actionSubtitle}>{action.subtitle}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Recent Rides */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Available Rides</Text>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/rides')}>
+              <Text style={styles.seeAllText}>See All</Text>
             </TouchableOpacity>
           </View>
-        ) : (
-<>
-              {/* Driver Mode Content */}
-            {selectedMode === 'Driver' ? (
-              <>
-                {/* Offer a Ride Button */}
-                <View style={styles.offerRideContainer}>
-                  <TouchableOpacity style={styles.offerRideButton} onPress={handleOfferRide}>
-                    <Text style={styles.offerRideButtonText}>Offer a Ride</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Upcoming Rides */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Upcoming Rides</Text>
-                  {upcomingDriverRides.length > 0 ? (
-        upcomingDriverRides.map((ride) => (
-          <TouchableOpacity 
-            key={ride.id} 
-            style={styles.upcomingRideCard}
           
-            onPress={() => router.push({
-              pathname: '/(tabs)/join-requests',
-              params: { rideId: ride.id }
-            })}
-          >
-            <View style={styles.upcomingRideIcon}>
-              <Car size={20} color="#4ECDC4" />
-            </View>
-            <View style={styles.upcomingRideInfo}>
-              <Text style={styles.upcomingRideDestination}>
-                {ride.start_location} → {ride.end_location}
-              </Text>
-              <Text style={styles.upcomingRideTime}>
-                {new Date(ride.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {ride.seats_available} seats
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))
-      ) : (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyStateText}>No upcoming rides scheduled</Text>
-          <TouchableOpacity 
-            style={styles.emptyStateButton}
-            onPress={handleOfferRide}
-          >
-            <Text style={styles.emptyStateButtonText}>Create your first ride</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-                </View>
-
-                {/* Recent Activity */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Recent Activity</Text>
-                  <View style={styles.statsContainer}>
-                    <View style={styles.statsRow}>
-                      <View style={styles.statCard}>
-                        <Text style={styles.statTitle}>{driverStats[0].title}</Text>
-                        <Text style={styles.statValue}>{driverStats[0].value}</Text>
-                      </View>
-                      <View style={styles.statCard}>
-                        <Text style={styles.statTitle}>{driverStats[1].title}</Text>
-                        <Text style={styles.statValue}>{driverStats[1].value}</Text>
-                      </View>
-                    </View>
-                    <View style={styles.statCardFull}>
-                      <Text style={styles.statTitle}>{driverStats[2].title}</Text>
-                      <Text style={styles.statValue}>{driverStats[2].value}</Text>
-                    </View>
-                  </View>
-                </View>
-              </>
-            ) : (
-              <>
-                {/* Search Bar */}
+          {ridesLoading ? (
+            <ActivityIndicator size="large" color="#4ECDC4" style={styles.loader} />
+          ) : rides.length > 0 ? (
+            <View style={styles.ridesContainer}>
+              {rides.slice(0, 3).map((ride) => (
                 <TouchableOpacity
-                  style={styles.searchContainer}
-                  activeOpacity={0.8}
-                  onPress={() => router.push('/search')}
+                  key={ride.id}
+                  style={styles.rideCard}
+                  onPress={() => router.push(`/ride-details?id=${ride.id}`)}
                 >
-                  <Search size={20} color="#9CA3AF" />
-                  <TextInput
-                    style={styles.searchInput}
-                    placeholder="Where to?"
-                    placeholderTextColor="#9CA3AF"
-                    editable={false}
-                    pointerEvents="none"
-                  />
-                </TouchableOpacity>
-
-                {/* Suggested Rides */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Suggested Rides</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.suggestedRidesScroll}>
-                    {suggestedRides.map((ride) => (
-                      <TouchableOpacity key={ride.id} style={styles.suggestedRideCard}>
-                        <Image source={{ uri: ride.image }} style={styles.suggestedRideImage} />
-                        <View style={styles.suggestedRideInfo}>
-                          <Text style={styles.suggestedRideDestination}>{ride.destination}</Text>
-                          <Text style={styles.suggestedRideTime}>{ride.time}</Text>
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-
-                {/* Upcoming Rides */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Upcoming Rides</Text>
-                  {upcomingRides.map((ride) => (
-                    <View key={ride.id} style={styles.upcomingRideCard}>
-                      <View style={styles.upcomingRideIcon}>
-                        <Car size={20} color="#4ECDC4" />
-                      </View>
-                      <View style={styles.upcomingRideInfo}>
-                        <Text style={styles.upcomingRideDestination}>{ride.destination}</Text>
-                        <Text style={styles.upcomingRideTime}>{ride.time}</Text>
-                      </View>
+                  <View style={styles.rideRoute}>
+                    <MapPin size={16} color="#4ECDC4" />
+                    <Text style={styles.routeText} numberOfLines={1}>
+                      {ride.start_location} → {ride.end_location}
+                    </Text>
+                  </View>
+                  <View style={styles.rideInfo}>
+                    <View style={styles.rideTime}>
+                      <Clock size={14} color="#6B7280" />
+                      <Text style={styles.timeText}>
+                        {formatDateTime(ride.start_time).time}
+                      </Text>
                     </View>
-                  ))}
-                </View>
-              </>
-            )}
-          </>
+                    <Text style={styles.fareText}>${ride.total_fare}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Car size={48} color="#D1D5DB" />
+              <Text style={styles.emptyText}>No rides available</Text>
+              <Text style={styles.emptySubtext}>Be the first to offer a ride!</Text>
+            </View>
+          )}
+        </View>
+
+        {/* My Rides */}
+        {myRides.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Your Rides</Text>
+              <TouchableOpacity onPress={() => router.push('/(tabs)/rides?tab=my-rides')}>
+                <Text style={styles.seeAllText}>See All</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.ridesContainer}>
+              {myRides.slice(0, 2).map((ride) => (
+                <TouchableOpacity
+                  key={ride.id}
+                  style={[styles.rideCard, styles.myRideCard]}
+                  onPress={() => router.push(`/ride-details?id=${ride.id}`)}
+                >
+                  <View style={styles.rideRoute}>
+                    <MapPin size={16} color="#44A08D" />
+                    <Text style={styles.routeText} numberOfLines={1}>
+                      {ride.start_location} → {ride.end_location}
+                    </Text>
+                  </View>
+                  <View style={styles.rideInfo}>
+                    <View style={styles.rideTime}>
+                      <Clock size={14} color="#6B7280" />
+                      <Text style={styles.timeText}>
+                        {formatDateTime(ride.start_time).time}
+                      </Text>
+                    </View>
+                    <Text style={styles.fareText}>${ride.total_fare}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Recurring Rides */}
+        {myRecurringRides.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recurring Schedule</Text>
+              <TouchableOpacity onPress={() => router.push('/(tabs)/rides?tab=recurring')}>
+                <Text style={styles.seeAllText}>See All</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.ridesContainer}>
+              {myRecurringRides.slice(0, 2).map((ride) => (
+                <TouchableOpacity
+                  key={ride.id}
+                  style={[styles.rideCard, styles.recurringRideCard]}
+                >
+                  <View style={styles.rideRoute}>
+                    <Calendar size={16} color="#6366F1" />
+                    <Text style={styles.routeText} numberOfLines={1}>
+                      {ride.start_location} → {ride.end_location}
+                    </Text>
+                  </View>
+                  <View style={styles.rideInfo}>
+                    <Text style={styles.scheduleText}>
+                      {getDayLabel(ride.day_of_week)} at {ride.start_time}
+                    </Text>
+                    <Text style={styles.fareText}>${ride.total_fare}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
         )}
       </ScrollView>
-
- 
-      {/* Floating Chat Button */}
-      <TouchableOpacity style={styles.floatingChatButton} onPress={handleRideChat}>
-        <MessageCircle size={24} color="#ffffff" />
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -378,7 +262,10 @@ useEffect(() => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fffe',
+  },
+  scrollView: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
@@ -386,284 +273,158 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingVertical: 20,
-  },
-
-  appTitle: {
-    fontSize: 20,
-    fontFamily: 'Inter-Bold',
-    color: '#2d3748',
-    justifyContent: 'center',
-    alignItems:'center',
-    paddingLeft:90,
-  },
-  settingsButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modeToggleContainer: {
-    flexDirection: 'row',
-    marginHorizontal: 24,
-    marginBottom: 24,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 25,
-    padding: 4,
-  },
-  modeButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 21,
-  },
-  activeModeButton: {
     backgroundColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: 8,
   },
-  modeButtonText: {
+  greetingContainer: {
+    flex: 1,
+  },
+  greeting: {
     fontSize: 16,
     fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
-  activeModeButtonText: {
-    color: '#2d3748',
-  },
-  offerRideContainer: {
-    paddingHorizontal: 24,
-    marginBottom: 32,
-    alignItems: 'center',
-  },
-  offerRideButton: {
-    backgroundColor: '#4ECDC4',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 25,
-    shadowColor: '#4ECDC4',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  offerRideButtonText: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#ffffff',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    marginHorizontal: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    borderRadius: 12,
-    marginBottom: 32,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#2d3748',
-  },
-  section: {
-    paddingHorizontal: 24,
-    paddingVertical: 7,
-    marginBottom: 3,
-  },
-  sectionTitle: {
+  userName: {
     fontSize: 24,
     fontFamily: 'Inter-Bold',
     color: '#2d3748',
-    marginBottom: 16,
+    marginTop: 4,
   },
-  suggestedRidesScroll: {
-    marginHorizontal: -24,
-    paddingHorizontal: 24,
-    paddingVertical:12,
-  },
-  emptyState: {
-  backgroundColor: '#F9FAFB',
-  borderRadius: 16,
-  padding: 24,
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginTop: 8,
-},
-emptyStateText: {
-  fontSize: 16,
-  fontFamily: 'Inter-Regular',
-  color: '#6B7280',
-  marginBottom: 16,
-  textAlign: 'center',
-},
-emptyStateButton: {
-  backgroundColor: '#E5E7EB',
-  paddingHorizontal: 24,
-  paddingVertical: 12,
-  borderRadius: 20,
-},
-emptyStateButtonText: {
-  fontSize: 14,
-  fontFamily: 'Inter-SemiBold',
-  color: '#4B5563',
-},
-  suggestedRideCard: {
-    width: 200,
-    marginRight: 16,
-    borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  suggestedRideImage: {
-    width: '100%',
-    height: 120,
-  },
-  suggestedRideInfo: {
-    padding: 16,
-  },
-  suggestedRideDestination: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#2d3748',
-    marginBottom: 4,
-  },
-  suggestedRideTime: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-  },
-  upcomingRideCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  upcomingRideIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  profileButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#F0FDFA',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  section: {
+    backgroundColor: '#ffffff',
+    marginBottom: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontFamily: 'Inter-Bold',
+    color: '#2d3748',
+  },
+  seeAllText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#4ECDC4',
+  },
+  actionsGrid: {
+    gap: 12,
+  },
+  actionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#f8fffe',
+    borderLeftWidth: 4,
+  },
+  actionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 16,
   },
-  upcomingRideInfo: {
+  actionContent: {
     flex: 1,
   },
-  upcomingRideDestination: {
-    fontSize: 18,
+  actionTitle: {
+    fontSize: 16,
     fontFamily: 'Inter-SemiBold',
     color: '#2d3748',
     marginBottom: 4,
   },
-  upcomingRideTime: {
+  actionSubtitle: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
   },
-  statsContainer: {
-    gap: 16,
+  loader: {
+    paddingVertical: 20,
   },
-  statsRow: {
+  ridesContainer: {
+    gap: 12,
+  },
+  rideCard: {
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#f8fffe',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  myRideCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#44A08D',
+  },
+  recurringRideCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#6366F1',
+  },
+  rideRoute: {
     flexDirection: 'row',
-    gap: 16,
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  statCard: {
+  routeText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#2d3748',
+    marginLeft: 8,
     flex: 1,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
-  statCardFull: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+  rideInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  statTitle: {
+  rideTime: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timeText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+    marginLeft: 4,
+  },
+  scheduleText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  fareText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Bold',
+    color: '#4ECDC4',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#6B7280',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  emptySubtext: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    marginBottom: 8,
-  },
-  statValue: {
-    fontSize: 32,
-    fontFamily: 'Inter-Bold',
-    color: '#2d3748',
-  },
-  floatingChatButton: {
-    position: 'absolute',
-    bottom: 100,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#4ECDC4',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#4ECDC4',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  loadingContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
     color: '#9CA3AF',
-    fontFamily: 'Inter-Regular',
-  },
-  roleWarningContainer: {
-    padding: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  roleWarningText: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#2d3748',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  roleWarningSubtext: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  updateProfileButton: {
-    backgroundColor: '#4ECDC4',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 25,
-    shadowColor: '#4ECDC4',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  updateProfileButtonText: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#ffffff',
   },
 });

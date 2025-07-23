@@ -51,59 +51,8 @@ export const useRides = () => {
       const data = await ridesAPI.searchRides(limit);
       setRides(data || []);
     } catch (err: any) {
-      console.warn('Backend not available, using mock data for demo');
-      // Mock data for demonstration
-      const mockRides = [
-        {
-          id: 1,
-          driver_id: 2,
-          car_id: 1,
-          start_location: "Stanford University",
-          end_location: "San Francisco",
-          start_time: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now
-          seats_available: 3,
-          total_fare: 25.00,
-          status: "active",
-          created_at: new Date().toISOString(),
-          driver: {
-            id: 2,
-            name: "John Doe",
-            photo_url: null,
-          },
-          car: {
-            id: 1,
-            make: "Tesla",
-            model: "Model 3",
-            color: "White",
-            seats: 5,
-          }
-        },
-        {
-          id: 2,
-          driver_id: 3,
-          car_id: 2,
-          start_location: "Palo Alto",
-          end_location: "Mountain View",
-          start_time: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(), // 4 hours from now
-          seats_available: 2,
-          total_fare: 15.00,
-          status: "active",
-          created_at: new Date().toISOString(),
-          driver: {
-            id: 3,
-            name: "Jane Smith",
-            photo_url: null,
-          },
-          car: {
-            id: 2,
-            make: "Honda",
-            model: "Civic",
-            color: "Blue",
-            seats: 5,
-          }
-        }
-      ];
-      setRides(mockRides);
+      setError(err.message || 'Failed to fetch rides');
+      setRides([]);
     } finally {
       setLoading(false);
     }
@@ -118,17 +67,9 @@ export const useRides = () => {
       Alert.alert('Success', 'Ride created successfully!');
       return newRide;
     } catch (err: any) {
-      console.warn('Backend not available, simulating ride creation for demo');
-      const mockNewRide = {
-        id: Date.now(),
-        driver_id: 1,
-        ...rideData,
-        status: 'active',
-        created_at: new Date().toISOString(),
-      };
-      setMyRides(prev => [...prev, mockNewRide]);
-      Alert.alert('Success', 'Ride created successfully! (Demo mode)');
-      return mockNewRide;
+      setError(err.message || 'Failed to create ride');
+      Alert.alert('Error', err.message || 'Failed to create ride');
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -141,22 +82,8 @@ export const useRides = () => {
       const data = await ridesAPI.getMyRides();
       setMyRides(data || []);
     } catch (err: any) {
-      console.warn('Backend not available, using mock data for demo');
-      const mockMyRides = [
-        {
-          id: 101,
-          driver_id: 1,
-          car_id: 1,
-          start_location: "Stanford University",
-          end_location: "San Francisco",
-          start_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
-          seats_available: 3,
-          total_fare: 25.00,
-          status: "active",
-          created_at: new Date().toISOString(),
-        }
-      ];
-      setMyRides(mockMyRides);
+      setError(err.message || 'Failed to fetch your rides');
+      setMyRides([]);
     } finally {
       setLoading(false);
     }
@@ -170,9 +97,9 @@ export const useRides = () => {
       Alert.alert('Success', 'Ride request sent successfully!');
       return request;
     } catch (err: any) {
-      console.warn('Backend not available, simulating request for demo');
-      Alert.alert('Success', 'Ride request sent successfully! (Demo mode)');
-      return { id: Date.now(), status: 'pending' };
+      setError(err.message || 'Failed to send ride request');
+      Alert.alert('Error', err.message || 'Failed to send ride request');
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -185,18 +112,8 @@ export const useRides = () => {
       const data = await ridesAPI.getMyRideRequests();
       setMyRequests(data || []);
     } catch (err: any) {
-      console.warn('Backend not available, using mock data for demo');
-      const mockRequests = [
-        {
-          id: 1,
-          rider_id: 1,
-          ride_id: 1,
-          status: 'pending',
-          requested_at: new Date().toISOString(),
-          message: 'Hi, I would like to join your ride!',
-        }
-      ];
-      setMyRequests(mockRequests);
+      setError(err.message || 'Failed to fetch your requests');
+      setMyRequests([]);
     } finally {
       setLoading(false);
     }
@@ -209,30 +126,8 @@ export const useRides = () => {
       const data = await ridesAPI.getRideHistory();
       setRideHistory(data || []);
     } catch (err: any) {
-      console.warn('Backend not available, using mock data for demo');
-      const mockHistory = [
-        {
-          id: 1,
-          user_id: 1,
-          ride_id: 50,
-          role: 'driver',
-          joined_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          completed_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(),
-          rating_given: 5,
-          rating_received: 4,
-        },
-        {
-          id: 2,
-          user_id: 1,
-          ride_id: 51,
-          role: 'rider',
-          joined_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          completed_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 1 * 60 * 60 * 1000).toISOString(),
-          rating_given: 4,
-          rating_received: 5,
-        }
-      ];
-      setRideHistory(mockHistory);
+      setError(err.message || 'Failed to fetch ride history');
+      setRideHistory([]);
     } finally {
       setLoading(false);
     }
@@ -262,34 +157,8 @@ export const useRides = () => {
       const ride = await ridesAPI.getRideDetails(rideId);
       return ride;
     } catch (err: any) {
-      console.warn('Backend not available, using mock data for demo');
-      // Return mock ride details
-      return {
-        id: rideId,
-        driver_id: 2,
-        car_id: 1,
-        start_location: "Stanford University",
-        end_location: "San Francisco",
-        start_time: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-        seats_available: 3,
-        total_fare: 25.00,
-        status: "active",
-        created_at: new Date().toISOString(),
-        driver: {
-          id: 2,
-          name: "John Doe",
-          photo_url: null,
-          phone: "+1234567890",
-        },
-        car: {
-          id: 1,
-          make: "Tesla",
-          model: "Model 3",
-          color: "White",
-          seats: 5,
-          license_plate: "ABC123",
-        }
-      };
+      setError(err.message || 'Failed to fetch ride details');
+      throw err;
     } finally {
       setLoading(false);
     }

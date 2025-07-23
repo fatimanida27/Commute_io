@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, Search, MessageCircle, User, Car, Calendar } from 'lucide-react-native';
+import { Chrome as Home, Car, MessageCircle, User } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -33,20 +33,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="search"
+        name="rides"
         options={{
-          title: 'Requests',
+          title: 'Rides',
           tabBarIcon: ({ size, color }) => (
             <Car size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="recurring-rides"
-        options={{
-          title: 'Schedule',
-          tabBarIcon: ({ size, color }) => (
-            <Calendar size={size} color={color} />
           ),
         }}
       />
@@ -59,7 +50,6 @@ export default function TabLayout() {
           ),
         }}
       />
-      
       <Tabs.Screen
         name="profile"
         options={{
@@ -69,115 +59,25 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="rides"
-        options={{
-          href: null, // Hide this tab
-        }}
-      />
-      <Tabs.Screen
-        name="ride-chat"
-        options={{
-          href: null, // Hide this tab
-        }}
-      />
-      <Tabs.Screen
-        name="ride-details"
-        options={{
-          href: null, // Hide this tab
-        }}
-      />
-      <Tabs.Screen
-        name="create-recurring-ride"
-        options={{
-          href: null, // Hide this tab
-        }}
-      />
-    <Tabs.Screen
-        name="setting"
-        options={{
-          href: null, // Hide this tab
-        }}
-      />
-      <Tabs.Screen
-        name="setting_screens/about"
-        options={{
-          href: null, // Hide this tab
-        }}
-      />
-      <Tabs.Screen
-        name="setting_screens/display"
-        options={{
-          href: null, // Hide this tab
-        }}
-      />
-      <Tabs.Screen
-        name="setting_screens/help"
-        options={{
-          href: null, // Hide this tab
-        }}
-      />
-      <Tabs.Screen
-        name="setting_screens/notification"
-        options={{
-          href: null, // Hide this tab
-        }}
-      />
-      <Tabs.Screen
-        name="profile_screens/edit"
-        options={{
-          href: null, // Hide this tab
-        }}
-      />
-      <Tabs.Screen
-        name="profile_screens/ride_history"
-        options={{
-          href: null, // Hide this tab
-        }}
-      />
-       <Tabs.Screen
-        name="offer-ride"
-        options={{
-          href: null, // Hide this tab
-        }}
-      />
-      <Tabs.Screen
-        name="join-requests"
-        options={{
-          href: null, // Hide this tab
-        }}
-      />
-      <Tabs.Screen
-        name="ride-request-screen"
-        options={{
-          href: null, // Hide this tab
-        }}
-      />
-      <Tabs.Screen
-        name="ride-in-progress"
-        options={{
-          href: null, // Hide this tab
-        }}
-      />
-      <Tabs.Screen
-        name="ride-summary"
-        options={{
-          href: null, // Hide this tab
-        }}
-      />
-      <Tabs.Screen
-        name="message_inbox"
-        options={{
-          href: null, // Hide this tab
-        }}
-      />
-
-
-        
-
-      
-    
-
+      {/* Hidden screens */}
+      <Tabs.Screen name="search" options={{ href: null }} />
+      <Tabs.Screen name="recurring-rides" options={{ href: null }} />
+      <Tabs.Screen name="ride-chat" options={{ href: null }} />
+      <Tabs.Screen name="ride-details" options={{ href: null }} />
+      <Tabs.Screen name="create-recurring-ride" options={{ href: null }} />
+      <Tabs.Screen name="setting" options={{ href: null }} />
+      <Tabs.Screen name="setting_screens/about" options={{ href: null }} />
+      <Tabs.Screen name="setting_screens/display" options={{ href: null }} />
+      <Tabs.Screen name="setting_screens/help" options={{ href: null }} />
+      <Tabs.Screen name="setting_screens/notification" options={{ href: null }} />
+      <Tabs.Screen name="profile_screens/edit" options={{ href: null }} />
+      <Tabs.Screen name="profile_screens/ride_history" options={{ href: null }} />
+      <Tabs.Screen name="offer-ride" options={{ href: null }} />
+      <Tabs.Screen name="join-requests" options={{ href: null }} />
+      <Tabs.Screen name="ride-request-screen" options={{ href: null }} />
+      <Tabs.Screen name="ride-in-progress" options={{ href: null }} />
+      <Tabs.Screen name="ride-summary" options={{ href: null }} />
+      <Tabs.Screen name="message_inbox" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -34,45 +34,8 @@ export const useMessages = () => {
       const data = await messagesAPI.getConversations();
       setConversations(data || []);
     } catch (err: any) {
-      console.warn('Backend not available, using mock data for demo');
-      // Mock conversations data
-      const mockConversations = [
-        {
-          id: 1,
-          user: {
-            id: 2,
-            name: "John Doe",
-            photo_url: null,
-          },
-          lastMessage: {
-            id: 1,
-            sender_id: 2,
-            receiver_id: 1,
-            content: "Hey! Are you ready for the ride tomorrow?",
-            created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 mins ago
-          },
-          unreadCount: 2,
-          ride_id: 1,
-        },
-        {
-          id: 2,
-          user: {
-            id: 3,
-            name: "Jane Smith",
-            photo_url: null,
-          },
-          lastMessage: {
-            id: 2,
-            sender_id: 1,
-            receiver_id: 3,
-            content: "Thanks for the ride yesterday!",
-            created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-          },
-          unreadCount: 0,
-          ride_id: 2,
-        }
-      ];
-      setConversations(mockConversations);
+      setError(err.message || 'Failed to fetch conversations');
+      setConversations([]);
     } finally {
       setLoading(false);
     }
@@ -85,59 +48,8 @@ export const useMessages = () => {
       const data = await messagesAPI.getConversationWithUser(userId);
       setCurrentConversation(data || []);
     } catch (err: any) {
-      console.warn('Backend not available, using mock data for demo');
-      // Mock conversation messages
-      const mockMessages = [
-        {
-          id: 1,
-          sender_id: userId,
-          receiver_id: 1,
-          content: "Hi! I saw your ride request. What time should we meet?",
-          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          sender: {
-            id: userId,
-            name: userId === 2 ? "John Doe" : "Jane Smith",
-            photo_url: null,
-          }
-        },
-        {
-          id: 2,
-          sender_id: 1,
-          receiver_id: userId,
-          content: "Great! How about 8:00 AM at the main entrance?",
-          created_at: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
-          sender: {
-            id: 1,
-            name: "You",
-            photo_url: null,
-          }
-        },
-        {
-          id: 3,
-          sender_id: userId,
-          receiver_id: 1,
-          content: "Perfect! See you then. I'll be driving a white Tesla Model 3.",
-          created_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-          sender: {
-            id: userId,
-            name: userId === 2 ? "John Doe" : "Jane Smith",
-            photo_url: null,
-          }
-        },
-        {
-          id: 4,
-          sender_id: 1,
-          receiver_id: userId,
-          content: "Sounds good! Looking forward to it.",
-          created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          sender: {
-            id: 1,
-            name: "You",
-            photo_url: null,
-          }
-        }
-      ];
-      setCurrentConversation(mockMessages);
+      setError(err.message || 'Failed to fetch conversation');
+      setCurrentConversation([]);
     } finally {
       setLoading(false);
     }
@@ -193,8 +105,9 @@ export const useMessages = () => {
       });
 
     } catch (err: any) {
-      console.warn('Backend not available, keeping optimistic update for demo');
-      // In demo mode, keep the optimistic update
+      // Remove the optimistic message on error
+      setCurrentConversation(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+      Alert.alert('Error', err.message || 'Failed to send message');
     }
   };
 
