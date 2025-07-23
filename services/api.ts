@@ -411,6 +411,67 @@ export const locationsAPI = {
   }
 };
 
+// Recurring Rides API
+export const recurringRidesAPI = {
+  async getRecurringRides(dayOfWeek?: number) {
+    const params = dayOfWeek !== undefined ? `?day_of_week=${dayOfWeek}` : '';
+    return apiRequest(`/recurring-rides/${params}`);
+  },
+
+  async createRecurringRide(recurringRideData: {
+    car_id: number;
+    start_location: string;
+    end_location: string;
+    day_of_week: number;
+    start_time: string; // HH:MM format
+    seats_available: number;
+    total_fare: number;
+    schedule_type?: string;
+  }) {
+    return apiRequest('/recurring-rides/', {
+      method: 'POST',
+      body: JSON.stringify(recurringRideData),
+    });
+  },
+
+  async getMyRecurringRides() {
+    return apiRequest('/recurring-rides/my-recurring-rides');
+  },
+
+  async getRecurringRideDetails(recurringRideId: number) {
+    return apiRequest(`/recurring-rides/${recurringRideId}`);
+  },
+
+  async updateRecurringRide(recurringRideId: number, updateData: {
+    start_location?: string;
+    end_location?: string;
+    day_of_week?: number;
+    start_time?: string;
+    seats_available?: number;
+    total_fare?: number;
+    status?: string;
+  }) {
+    return apiRequest(`/recurring-rides/${recurringRideId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData),
+    });
+  },
+
+  async deleteRecurringRide(recurringRideId: number) {
+    return apiRequest(`/recurring-rides/${recurringRideId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async getDaysOfWeekOptions() {
+    return apiRequest('/recurring-rides/options/days-of-week');
+  },
+
+  async getScheduleTypeOptions() {
+    return apiRequest('/recurring-rides/options/schedule-types');
+  }
+};
+
 // Health check
 export const healthAPI = {
   async checkHealth() {
