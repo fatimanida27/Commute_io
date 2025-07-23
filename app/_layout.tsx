@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, Redirect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { useFonts } from 'expo-font';
@@ -10,8 +10,31 @@ import {
   Inter_700Bold
 } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
+import { AppProvider } from '../providers/AppProvider';
+import { useAuth } from '../hooks/useAuth';
 
 SplashScreen.preventAutoHideAsync();
+
+function RootLayoutContent() {
+  const { isAuthenticated, user } = useAuth();
+
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="onboarding" />
+      <Stack.Screen name="auth/signup" />
+      <Stack.Screen name="auth/EmailPage" />
+      <Stack.Screen name="auth/EmailOTP" />
+      <Stack.Screen name="auth/PhoneNumberPage" />
+      <Stack.Screen name="auth/PhoneOTP" />
+      <Stack.Screen name="auth/profile-setup" />
+      <Stack.Screen name="auth/DailySchedule" />
+      <Stack.Screen name="auth/PreferredpickupLocation" />
+      <Stack.Screen name="auth/AddLocationScreen" />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="+not-found" />
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
   useFrameworkReady();
@@ -34,22 +57,9 @@ export default function RootLayout() {
   }
 
   return (
-    <>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="auth/signup" />
-        <Stack.Screen name="auth/profile-setup" />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/DailySchedule" />
-        <Stack.Screen name="auth/PhoneNumberPage" />
-        <Stack.Screen name="auth/PhoneOTP" />
-        <Stack.Screen name="+not-found" />
-        <Stack.Screen name="auth/PreferredpickupLocation" />
-        <Stack.Screen name="auth/EmailOTP" />
-        <Stack.Screen name="auth/EmailPage" />
-        <Stack.Screen name="auth/AddLocationScreen" />
-      </Stack>
+    <AppProvider>
+      <RootLayoutContent />
       <StatusBar style="auto" />
-    </>
+    </AppProvider>
   );
 }

@@ -1,12 +1,22 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Image } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAuth } from '../hooks/useAuth';
 
 const { width, height } = Dimensions.get('window');
 
 export default function OnboardingScreen() {
+  const { isAuthenticated, user } = useAuth();
+
+  useEffect(() => {
+    // Redirect authenticated users to the main app
+    if (isAuthenticated && user) {
+      router.replace('/(tabs)/');
+    }
+  }, [isAuthenticated, user]);
+
   const handleGetStarted = () => {
     router.push('/auth/signup');
   };
