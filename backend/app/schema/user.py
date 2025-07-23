@@ -90,7 +90,6 @@ class UserResponse(UserBase):
 
 class UserLogin(BaseModel):
     email: EmailStr
-    password: str
 
 class ProfileResponse(BaseModel):
     id: int
@@ -133,9 +132,8 @@ class UserMobileRegister(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
-    is_new_user: bool 
-    auth_method: AuthMethod
     user: UserResponse
+    needs_profile_setup: bool = False
 
 
 class TokenData(BaseModel):

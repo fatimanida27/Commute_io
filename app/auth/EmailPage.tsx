@@ -44,13 +44,16 @@ const EmailScreen = () => {
     Alert.alert("Timeout", "Request took too long");
   }, 15000);
     try {
-      await authAPI.sendOTP(email);
-      router.push({
-        pathname: '/auth/EmailOTP',
-        params: { email },
-      });
+      const response = await authAPI.login(email);
+      
+      // Navigate based on profile completion
+      if (response.needs_profile_setup) {
+        router.replace('/auth/profile-setup');
+      } else {
+        router.replace('/(tabs)/');
+      }
     } catch (error) {
-      Alert.alert("Error", error instanceof Error ? error.message : "Failed to send OTP");
+      Alert.alert("Error", error instanceof Error ? error.message : "Failed to login with email");
     } finally {
           clearTimeout(timeout);
       setLoading(false);
@@ -68,7 +71,7 @@ const EmailScreen = () => {
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
             <ArrowLeft size={24} color="#2d3748" />
           </TouchableOpacity>
-          <Text style={styles.headerText}>Verification</Text>
+          <Text style={styles.headerText}>Login</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -96,7 +99,7 @@ const EmailScreen = () => {
             disabled={!email || !isEmailValid(email) || loading}
           >
             <Text style={styles.nextButtonText}>
-              {loading ? "Sending..." : "Next"}
+              {loading ? "Logging in..." : "Login"}
             </Text>
           </TouchableOpacity>
         </View>

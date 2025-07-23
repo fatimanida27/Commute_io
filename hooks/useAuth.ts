@@ -22,7 +22,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string) => Promise<void>;
   register: (userData: any) => Promise<void>;
   sendOTP: (email: string) => Promise<void>;
   sendMobileOTP: (phone: string) => Promise<void>;
@@ -81,15 +81,21 @@ export const useAuthProvider = () => {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string) => {
     try {
       setIsLoading(true);
-      const response = await authAPI.login(email, password);
+      const response = await authAPI.login(email);
       setUser(response.user);
       setIsAuthenticated(true);
-      router.replace('/(tabs)/');
+      
+      // Navigate based on profile completion
+      if (response.needs_profile_setup) {
+        router.replace('/auth/profile-setup');
+      } else {
+        router.replace('/(tabs)/');
+      }
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message || 'Please check your credentials');
+      Alert.alert('Login Failed', error.message || 'Please check your email');
       throw error;
     } finally {
       setIsLoading(false);

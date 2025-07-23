@@ -8,16 +8,10 @@ from app.db.models.recurring_ride import RecurringRide
 from app.db.models.message import Message
 from app.db.models.location import PreferredLocation
 from app.db.models.schedule import Schedule
-from passlib.context import CryptContext
 from datetime import datetime, timedelta, time
 import logging
 
 logger = logging.getLogger(__name__)
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
 
 def seed_database():
     """Populate database with initial data if it's empty"""
@@ -42,7 +36,6 @@ def seed_database():
                 "is_driver": True,
                 "is_rider": True,
                 "gender": "male",
-                "hashed_password": hash_password("password123"),
                 "email_verified": True,
                 "phone_verified": True,
             },
@@ -54,7 +47,6 @@ def seed_database():
                 "is_driver": True,
                 "is_rider": True,
                 "gender": "female",
-                "hashed_password": hash_password("password123"),
                 "email_verified": True,
                 "phone_verified": True,
             },
@@ -66,7 +58,6 @@ def seed_database():
                 "is_driver": False,
                 "is_rider": True,
                 "gender": "male",
-                "hashed_password": hash_password("password123"),
                 "email_verified": True,
                 "phone_verified": True,
             },
@@ -78,7 +69,6 @@ def seed_database():
                 "is_driver": True,
                 "is_rider": True,
                 "gender": "female",
-                "hashed_password": hash_password("password123"),
                 "email_verified": True,
                 "phone_verified": True,
             }

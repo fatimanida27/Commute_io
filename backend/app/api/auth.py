@@ -84,14 +84,20 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
 @router.post("/login", response_model=Token)
 async def login(login_data: UserLogin, db: Session = Depends(get_db)):
     user = get_user_by_email(db, email=login_data.email)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password"
-        )
     
-    # For now, we'll skip password verification since we don't have it in the model
-    # In production, add password field to User model and verify here
+    if not user:
+        # User doesn't exist, create new user with email only
+        user = User(
+            email=login_data.email,
+            email_verified=True
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        needs_setup = True
+    else:
+        # User exists, check if profile is complete
+        needs_setup = not user.name or not (user.is_driver or user.is_rider)
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
@@ -102,7 +108,8 @@ async def login(login_data: UserLogin, db: Session = Depends(get_db)):
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": user
+        "user": user,
+        "needs_profile_setup": needs_setup
     }
 
 

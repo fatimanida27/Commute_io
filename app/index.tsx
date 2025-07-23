@@ -16,7 +16,7 @@ export default function Index() {
 
   if (isAuthenticated && user) {
     // Check if user has completed profile setup
-    if (user.name && (user.email || user.phone)) {
+    if (user.name && (user.is_driver || user.is_rider)) {
       return <Redirect href="/(tabs)/" />;
     } else {
       return <Redirect href="/auth/profile-setup" />;
