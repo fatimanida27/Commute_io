@@ -103,11 +103,11 @@ export default function MessagesScreen() {
       />
       <View style={styles.conversationContent}>
         <View style={styles.conversationHeader}>
-          <Text style={styles.name}>{conversation.user_name}</Text>
+          <Text style={styles.name}>{conversation.user_name || 'Unknown User'}</Text>
           <Text style={styles.timestamp}>{formatTime(conversation.last_message_time)}</Text>
         </View>
         <Text style={styles.lastMessage} numberOfLines={2}>
-          {conversation.last_message}
+          {conversation.last_message || 'No messages yet'}
         </Text>
       </View>
     </TouchableOpacity>

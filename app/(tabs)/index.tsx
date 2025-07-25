@@ -116,19 +116,19 @@ useEffect(() => {
 
   const suggestedRides = [
     {
-      id: 1,
+      id: 101, // Changed from 1 to avoid conflict
       destination: 'To Downtown',
       time: '10:00 AM',
       image: 'https://images.pexels.com/photos/466685/pexels-photo-466685.jpeg?auto=compress&cs=tinysrgb&w=400',
     },
     {
-      id: 2,
+      id: 102, // Changed from 2 to avoid conflict
       destination: 'To Airport',
       time: '11:30 AM',
       image: 'https://images.pexels.com/photos/378570/pexels-photo-378570.jpeg?auto=compress&cs=tinysrgb&w=400',
     },
     {
-      id: 3,
+      id: 103, // Changed from 3 to avoid conflict
       destination: 'To University',
       time: '1:00 PM',
       image: 'https://images.pexels.com/photos/1105766/pexels-photo-1105766.jpeg?auto=compress&cs=tinysrgb&w=400',
@@ -137,12 +137,12 @@ useEffect(() => {
 
   const upcomingRides = [
     {
-      id: 1,
+      id: 201, // Changed from 1 to avoid conflict
       destination: 'To Downtown',
       time: '10:00 AM',
     },
     {
-      id: 2,
+      id: 202, // Changed from 2 to avoid conflict
       destination: 'To Airport',
       time: '11:30 AM',
     },

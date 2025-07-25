@@ -25,38 +25,36 @@ def get_conversation(db: Session, user1_id: int, user2_id: int) -> List[Message]
 
 def get_user_conversations(db: Session, user_id: int) -> List[Dict]:
     """Get list of conversations with last message and user details"""
-    # Subquery to get the latest message for each conversation
-    latest_messages = db.query(
-        func.max(Message.id).label('latest_id')
-    ).filter(
-        or_(Message.sender_id == user_id, Message.receiver_id == user_id)
-    ).group_by(
-        func.case(
-            (Message.sender_id == user_id, Message.receiver_id),
-            else_=Message.sender_id
-        )
-    ).subquery()
-    
-    # Get the actual latest messages with user details
-    conversations = db.query(Message).options(
+    # Use a simpler approach to get conversations
+    # Get all messages involving the user
+    messages = db.query(Message).options(
         joinedload(Message.sender),
         joinedload(Message.receiver)
     ).filter(
-        Message.id.in_(latest_messages.c.latest_id)
+        or_(Message.sender_id == user_id, Message.receiver_id == user_id)
     ).order_by(Message.sent_at.desc()).all()
     
-    # Format the response
-    result = []
-    for msg in conversations:
+    # Group by conversation partner and get the latest message for each
+    conversations_dict = {}
+    for msg in messages:
         other_user = msg.receiver if msg.sender_id == user_id else msg.sender
-        result.append({
-            'user_id': other_user.id,
-            'user_name': other_user.name,
-            'user_photo': other_user.photo_url,
-            'last_message': msg.content,
-            'last_message_time': msg.sent_at,
-            'last_message_id': msg.id,
-            'ride_id': msg.ride_id
-        })
+        other_user_id = other_user.id
+        
+        # Only keep the latest message for each conversation partner
+        if other_user_id not in conversations_dict:
+            conversations_dict[other_user_id] = {
+                'user_id': other_user.id,
+                'user_name': other_user.name,
+                'user_photo': other_user.photo_url,
+                'last_message': msg.content,
+                'last_message_time': msg.sent_at,
+                'last_message_id': msg.id,
+                'ride_id': msg.ride_id
+            }
+    
+    # Convert dictionary values to list
+    result = list(conversations_dict.values())
+    # Sort by last message time (most recent first)
+    result.sort(key=lambda x: x['last_message_time'], reverse=True)
     
     return result

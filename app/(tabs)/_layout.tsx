@@ -172,6 +172,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="ride-message"
+        options={{
+          href: null, // Hide this tab
+        }}
+      />
+      <Tabs.Screen
         name="ride-confirmed"
         options={{
           href: null, // Hide this tab
