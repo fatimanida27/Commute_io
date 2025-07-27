@@ -42,19 +42,38 @@ async def get_profile(current_user: User = Depends(get_current_user), db: Sessio
         Ride.driver_id == current_user.id
     ).count()
 
-    driver_rating = db.query(
-        func.avg(func.coalesce(RideHistory.rating_given, 5))
-    ).join(
-        Ride, RideHistory.ride_id == Ride.id
-    ).filter(
-        Ride.driver_id == current_user.id
-    ).scalar() if rides_offered > 0 else 0
+    driver_rating = 0.0
+    if rides_offered > 0:
+        result = db.query(
+            func.avg(func.coalesce(RideHistory.rating_given, 5))
+        ).join(
+            Ride, RideHistory.ride_id == Ride.id
+        ).filter(
+            Ride.driver_id == current_user.id
+        ).scalar()
+        driver_rating = float(result) if result is not None else 0.0
 
-    rider_rating = db.query(
-        func.avg(func.coalesce(RideHistory.rating_received, 5))
-    ).filter(
-        RideHistory.user_id == current_user.id
-    ).scalar() if rides_taken > 0 else 0
+    rider_rating = 0.0
+    if rides_taken > 0:
+        result = db.query(
+            func.avg(func.coalesce(RideHistory.rating_received, 5))
+        ).filter(
+            RideHistory.user_id == current_user.id
+        ).scalar()
+        rider_rating = float(result) if result is not None else 0.0
+    
+    # Handle preferences conversion from JSON to UserPreferences object
+    preferences_obj = None
+    if current_user.preferences:
+        try:
+            if isinstance(current_user.preferences, str):
+                preferences_data = json.loads(current_user.preferences)
+            else:
+                preferences_data = current_user.preferences
+            preferences_obj = UserPreferences(**preferences_data)
+        except (json.JSONDecodeError, TypeError, ValueError):
+            # If preferences data is invalid, set to None
+            preferences_obj = None
     
     profile_data = {
         "id": current_user.id,
@@ -69,7 +88,7 @@ async def get_profile(current_user: User = Depends(get_current_user), db: Sessio
         # include all other fields you need
         "rides_taken": rides_taken,
         "rides_offered": rides_offered,
-        "preferences": current_user.preferences,
+        "preferences": preferences_obj,
         "driver_rating": driver_rating,
         "rider_rating": rider_rating
     }
