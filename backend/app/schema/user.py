@@ -95,8 +95,8 @@ class UserLogin(BaseModel):
 class ProfileResponse(BaseModel):
     id: int
     name: str
-    email: str
-    phone: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
     bio: Optional[str]
     gender: Optional[str] = None
     is_driver: bool
