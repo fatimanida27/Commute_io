@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, Alert, Dimensions } from 'react-native';
-import MapView, { Marker, Polyline, Region, PROVIDER_GOOGLE } from 'react-native-maps';
-import MapViewDirections from 'react-native-maps-directions';
+import MapView, { Marker, Polyline, Region } from 'react-native-maps';
 import { Coordinates, LocationResult } from '../services/mapService';
 
 const { width, height } = Dimensions.get('window');
@@ -19,7 +18,7 @@ interface MapComponentProps {
   showUserLocation?: boolean;
   showDirections?: boolean;
   style?: any;
-  apiKey?: string;
+  // apiKey not needed for free version
   zoomToRoute?: boolean;
 }
 
@@ -49,7 +48,6 @@ export default function MapComponent({
   showUserLocation = true,
   showDirections = true,
   style,
-  apiKey = 'YOUR_GOOGLE_MAPS_API_KEY', // You'll need to set this
   zoomToRoute = true,
 }: MapComponentProps) {
   const mapRef = useRef<MapView>(null);
@@ -125,32 +123,7 @@ export default function MapComponent({
   const renderRoute = () => {
     if (!route || !showDirections) return null;
 
-    // If we have Google Maps API key, use MapViewDirections
-    if (apiKey && apiKey !== 'YOUR_GOOGLE_MAPS_API_KEY') {
-      return (
-        <MapViewDirections
-          origin={route.origin}
-          destination={route.destination}
-          waypoints={route.waypoints}
-          apikey={apiKey}
-          strokeWidth={4}
-          strokeColor="#4ECDC4"
-          optimizeWaypoints={true}
-          onStart={(params) => {
-            console.log(`Started routing between "${params.origin}" and "${params.destination}"`);
-          }}
-          onReady={(result) => {
-            console.log(`Distance: ${result.distance} km`);
-            console.log(`Duration: ${result.duration} min.`);
-          }}
-          onError={(errorMessage) => {
-            console.log('Got an error: ', errorMessage);
-          }}
-        />
-      );
-    }
-
-    // Fallback: simple polyline
+    // FREE routing: simple straight line between points
     const coordinates = [route.origin];
     if (route.waypoints) {
       coordinates.push(...route.waypoints);
@@ -162,7 +135,7 @@ export default function MapComponent({
         coordinates={coordinates}
         strokeColor="#4ECDC4"
         strokeWidth={4}
-        strokePattern={[1]}
+        lineDashPattern={[10, 5]} // Dashed line for visual appeal
       />
     );
   };
@@ -171,7 +144,7 @@ export default function MapComponent({
     <View style={[styles.container, style]}>
       <MapView
         ref={mapRef}
-        provider={PROVIDER_GOOGLE}
+        provider={undefined} // Uses free OpenStreetMap on Android, Apple Maps on iOS
         style={styles.map}
         region={region}
         onRegionChangeComplete={setRegion}

@@ -92,9 +92,10 @@ class MapService {
     }
   }
 
-  // Forward geocoding - convert address to coordinates
+  // Forward geocoding - convert address to coordinates (FREE using Expo Location + Nominatim fallback)
   async geocodeAddress(address: string): Promise<LocationResult | null> {
     try {
+      // Try Expo Location first (uses device's native geocoding)
       const results = await Location.geocodeAsync(address);
       if (results.length > 0) {
         const result = results[0];
@@ -111,9 +112,43 @@ class MapService {
           address: reverseAddress || address,
         };
       }
-      return null;
+
+      // Fallback to FREE Nominatim API if Expo fails
+      const nominatimResult = await this.geocodeWithNominatim(address);
+      return nominatimResult;
     } catch (error) {
       console.error('Error geocoding address:', error);
+      // Try Nominatim as final fallback
+      return await this.geocodeWithNominatim(address);
+    }
+  }
+
+  // FREE Nominatim geocoding service
+  private async geocodeWithNominatim(address: string): Promise<LocationResult | null> {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
+        {
+          headers: {
+            'User-Agent': 'Commute.io App', // Required by Nominatim
+          },
+        }
+      );
+      const data = await response.json();
+      
+      if (data.length > 0) {
+        const result = data[0];
+        return {
+          coordinates: {
+            latitude: parseFloat(result.lat),
+            longitude: parseFloat(result.lon),
+          },
+          address: result.display_name,
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error with Nominatim geocoding:', error);
       return null;
     }
   }
@@ -139,39 +174,23 @@ class MapService {
     return degrees * (Math.PI / 180);
   }
 
-  // Get route information using Google Directions API
+  // FREE route calculation using distance calculation
   async getRouteInfo(origin: Coordinates, destination: Coordinates): Promise<RouteInfo | null> {
     try {
-      const GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY'; // You'll need to set this
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&key=${GOOGLE_MAPS_API_KEY}`
-      );
-
-      const data = await response.json();
-      
-      if (data.routes && data.routes.length > 0) {
-        const route = data.routes[0];
-        const leg = route.legs[0];
-        
-        return {
-          distance: leg.distance.text,
-          duration: leg.duration.text,
-          polyline: route.overview_polyline.points,
-        };
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('Error getting route info:', error);
-      // Fallback calculation
+      // Calculate straight-line distance (FREE)
       const distance = this.calculateDistance(origin, destination);
-      const duration = Math.round(distance / 60 * 60); // Rough estimate: 60 km/h average
+      
+      // Estimate duration based on average city driving speed (40 km/h)
+      const duration = Math.round((distance / 40) * 60); // minutes
       
       return {
         distance: `${distance.toFixed(1)} km`,
         duration: `${duration} min`,
-        polyline: '',
+        polyline: '', // Simple straight line routing
       };
+    } catch (error) {
+      console.error('Error calculating route:', error);
+      return null;
     }
   }
 
