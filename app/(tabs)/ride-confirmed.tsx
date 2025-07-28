@@ -65,7 +65,12 @@ export default function RideConfirmedScreen() {
   };
 
   const handleViewRideDetails = () => {
-    router.push('/(tabs)/ride-in-progress');
+    const rideId = params.rideId || params.id;
+    if (rideId) {
+      router.push(`/(tabs)/ride-in-progress?rideId=${rideId}`);
+    } else {
+      Alert.alert('Error', 'No ride ID available');
+    }
   };
 
   const handleGoHome = () => {

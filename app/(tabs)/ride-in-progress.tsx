@@ -51,6 +51,14 @@ export default function RideInProgressScreen() {
 const fetchData = async () => {
   try{
     setLoading(true);
+    
+    // Validate rideId before making API call
+    if (!rideId || isNaN(Number(rideId))) {
+      console.error('Invalid ride ID:', rideId);
+      setLoading(false);
+      return;
+    }
+    
     const rideResponse = await ridesAPI.getRideDetails(Number(rideId));
       setRideDetails({
         start_location: rideResponse.start_location,

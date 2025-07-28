@@ -83,6 +83,15 @@ export default function JoinRequestsScreen() {
       
       // Fetch ride details
       const rideIdNumber = Array.isArray(rideId) ? Number(rideId[0]) : Number(rideId);
+      
+      // Validate rideId before making API call
+      if (!rideId || isNaN(rideIdNumber)) {
+        console.error('Invalid ride ID:', rideId);
+        setError('Invalid ride ID');
+        setLoading(false);
+        return;
+      }
+      
       const rideResponse = await ridesAPI.getRideDetails(rideIdNumber);
       setRideInfo({
         start_time: rideResponse.start_time,
