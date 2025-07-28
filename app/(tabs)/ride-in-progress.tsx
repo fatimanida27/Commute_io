@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, ActivityIndicator  } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, ActivityIndicator, Dimensions  } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Star } from 'lucide-react-native';
+import { ArrowLeft, Star, Map, Navigation } from 'lucide-react-native';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import {ridesAPI,usersAPI} from '../../services/api'
+import {ridesAPI,usersAPI} from '../../services/api';
+import MapComponent, { MarkerData } from '../../components/MapView';
+import { Coordinates } from '../../services/mapService';
+
+const { width, height } = Dimensions.get('window');
 
 interface DriverDetails {
     name : string;
@@ -36,7 +40,12 @@ export default function RideInProgressScreen() {
     start_location: '',
     end_location: '',
     start_time: '',
+    start_latitude: null as number | null,
+    start_longitude: null as number | null,
+    end_latitude: null as number | null,
+    end_longitude: null as number | null,
   });
+  const [showMap, setShowMap] = useState(false);
     
 
 const fetchData = async () => {
@@ -47,6 +56,10 @@ const fetchData = async () => {
         start_location: rideResponse.start_location,
         end_location: rideResponse.end_location,
         start_time: rideResponse.start_time,
+        start_latitude: rideResponse.start_latitude,
+        start_longitude: rideResponse.start_longitude,
+        end_latitude: rideResponse.end_latitude,
+        end_longitude: rideResponse.end_longitude,
       });
     const driver = rideResponse.driver;
       const driverProfile = await usersAPI.getUserProfileById(driver.id);
@@ -187,6 +200,62 @@ const handleCompleteRide = (riderId: number) => {
       </SafeAreaView>
     );
   }
+
+  const getMapMarkers = (): MarkerData[] => {
+    const markers: MarkerData[] = [];
+
+    // Add start location marker
+    if (rideDetails.start_latitude && rideDetails.start_longitude) {
+      markers.push({
+        id: 'start',
+        coordinate: {
+          latitude: rideDetails.start_latitude,
+          longitude: rideDetails.start_longitude,
+        },
+        title: 'Pickup Location',
+        description: rideDetails.start_location,
+        type: 'pickup',
+      });
+    }
+
+    // Add end location marker
+    if (rideDetails.end_latitude && rideDetails.end_longitude) {
+      markers.push({
+        id: 'end',
+        coordinate: {
+          latitude: rideDetails.end_latitude,
+          longitude: rideDetails.end_longitude,
+        },
+        title: 'Destination',
+        description: rideDetails.end_location,
+        type: 'dropoff',
+      });
+    }
+
+    // Add rider markers
+    riders.forEach(rider => {
+      // You might want to add rider pickup/dropoff locations if available
+    });
+
+    return markers;
+  };
+
+  const getRouteData = () => {
+    if (rideDetails.start_latitude && rideDetails.start_longitude && 
+        rideDetails.end_latitude && rideDetails.end_longitude) {
+      return {
+        origin: {
+          latitude: rideDetails.start_latitude,
+          longitude: rideDetails.start_longitude,
+        },
+        destination: {
+          latitude: rideDetails.end_latitude,
+          longitude: rideDetails.end_longitude,
+        },
+      };
+    }
+    return undefined;
+  };
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -195,24 +264,41 @@ const handleCompleteRide = (riderId: number) => {
           <ArrowLeft size={24} color="#2d3748" />
         </TouchableOpacity>
         <Text style={styles.title}>Ride in progress</Text>
-        <View style={styles.placeholder} />
+        <TouchableOpacity 
+          style={styles.mapToggleButton}
+          onPress={() => setShowMap(!showMap)}
+        >
+          {showMap ? <Navigation size={24} color="#4ECDC4" /> : <Map size={24} color="#4ECDC4" />}
+        </TouchableOpacity>
       </View>
 
       {/* Map Container */}
       <View style={styles.mapContainer}>
-        <Image
-          source={{ uri: 'https://images.pexels.com/photos/2662116/pexels-photo-2662116.jpeg?auto=compress&cs=tinysrgb&w=800' }}
-          style={styles.mapImage}
-          resizeMode="cover"
-        />
-        
-        {/* Map Overlay with Location Marker */}
-        <View style={styles.mapOverlay}>
-          <View style={styles.locationMarker}>
-            <View style={styles.markerDot} />
-            <Text style={styles.locationText}>{rideDetails.start_location}</Text>
-          </View>
-        </View>
+        {showMap && rideDetails.start_latitude && rideDetails.start_longitude ? (
+          <MapComponent
+            markers={getMapMarkers()}
+            route={getRouteData()}
+            showUserLocation={true}
+            showDirections={true}
+            style={styles.mapView}
+          />
+        ) : (
+          <>
+            <Image
+              source={{ uri: 'https://images.pexels.com/photos/2662116/pexels-photo-2662116.jpeg?auto=compress&cs=tinysrgb&w=800' }}
+              style={styles.mapImage}
+              resizeMode="cover"
+            />
+            
+            {/* Map Overlay with Location Marker */}
+            <View style={styles.mapOverlay}>
+              <View style={styles.locationMarker}>
+                <View style={styles.markerDot} />
+                <Text style={styles.locationText}>{rideDetails.start_location}</Text>
+              </View>
+            </View>
+          </>
+        )}
       </View>
 
       {/* Bottom Sheet */}
@@ -356,8 +442,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     color: '#2d3748',
   },
-  placeholder: {
+  mapToggleButton: {
     width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   mapContainer: {
     flex: 1,
@@ -366,6 +457,9 @@ const styles = StyleSheet.create({
   mapImage: {
     width: '100%',
     height: '100%',
+  },
+  mapView: {
+    flex: 1,
   },
   mapOverlay: {
     position: 'absolute',

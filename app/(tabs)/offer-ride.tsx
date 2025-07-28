@@ -11,13 +11,17 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, MapPin, Calendar, Clock, Users, DollarSign } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Calendar, Clock, Users, DollarSign, Map } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { ridesAPI, carsAPI } from '../../services/api';
+import LocationPicker from '../../components/LocationPicker';
+import { LocationResult } from '../../services/mapService';
 
 export default function OfferRideScreen() {
   const [fromLocation, setFromLocation] = useState('');
   const [toLocation, setToLocation] = useState('');
+  const [fromLocationData, setFromLocationData] = useState<LocationResult | null>(null);
+  const [toLocationData, setToLocationData] = useState<LocationResult | null>(null);
   const [date, setDate] = useState<Date | undefined>();
   const [time, setTime] = useState<Date | undefined>();
   const [seats, setSeats] = useState('');
@@ -25,9 +29,49 @@ export default function OfferRideScreen() {
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showFromLocationPicker, setShowFromLocationPicker] = useState(false);
+  const [showToLocationPicker, setShowToLocationPicker] = useState(false);
+  const [estimatedDistance, setEstimatedDistance] = useState<string>('');
+  const [estimatedDuration, setEstimatedDuration] = useState<string>('');
 
   const handleBack = () => {
     router.back();
+  };
+
+  const handleFromLocationSelect = (location: LocationResult) => {
+    setFromLocationData(location);
+    setFromLocation(location.address);
+    setShowFromLocationPicker(false);
+    calculateRouteInfo(location, toLocationData);
+  };
+
+  const handleToLocationSelect = (location: LocationResult) => {
+    setToLocationData(location);
+    setToLocation(location.address);
+    setShowToLocationPicker(false);
+    calculateRouteInfo(fromLocationData, location);
+  };
+
+  const calculateRouteInfo = async (from: LocationResult | null, to: LocationResult | null) => {
+    if (from && to) {
+      try {
+        const { mapService } = await import('../../services/mapService');
+        const routeInfo = await mapService.getRouteInfo(from.coordinates, to.coordinates);
+        if (routeInfo) {
+          setEstimatedDistance(routeInfo.distance);
+          setEstimatedDuration(routeInfo.duration);
+          
+          // Calculate total fare based on distance
+          const distanceInKm = parseFloat(routeInfo.distance.replace(' km', ''));
+          if (!isNaN(distanceInKm)) {
+            const calculatedFare = (distanceInKm * parseFloat(costPerMile)).toFixed(2);
+            // You might want to update a fare state here
+          }
+        }
+      } catch (error) {
+        console.error('Error calculating route:', error);
+      }
+    }
   };
 
   const validateForm = () => {
@@ -73,14 +117,20 @@ export default function OfferRideScreen() {
       time!.getMinutes()
     );
 
-    // 3. Prepare ride data (using component state variables)
+    // 3. Prepare ride data with coordinates
     const rideData = {
       car_id: carsResponse[0].id,
       start_location: fromLocation,
       end_location: toLocation,
+      start_latitude: fromLocationData?.coordinates.latitude,
+      start_longitude: fromLocationData?.coordinates.longitude,
+      end_latitude: toLocationData?.coordinates.latitude,
+      end_longitude: toLocationData?.coordinates.longitude,
+      distance_km: estimatedDistance ? parseFloat(estimatedDistance.replace(' km', '')) : undefined,
+      estimated_duration: estimatedDuration ? parseInt(estimatedDuration.replace(' min', '')) : undefined,
       start_time: combinedDateTime.toISOString(),
       seats_available: parseInt(seats),
-      total_fare: parseInt(totalFare), // Example fare calculation
+      total_fare: parseFloat(totalFare), // Example fare calculation
     };
 
     // 4. Create ride
@@ -126,16 +176,16 @@ export default function OfferRideScreen() {
           <View style={styles.section}>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>From</Text>
-              <View style={styles.inputContainer}>
+              <TouchableOpacity 
+                style={styles.inputContainer}
+                onPress={() => setShowFromLocationPicker(true)}
+              >
                 <MapPin size={20} color="#9CA3AF" />
-                <TextInput
-                  style={styles.input}
-                  value={fromLocation}
-                  onChangeText={setFromLocation}
-                  placeholder="Enter pickup location"
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
+                <Text style={[styles.input, styles.inputText, !fromLocation && styles.placeholderText]}>
+                  {fromLocation || 'Select pickup location'}
+                </Text>
+                <Map size={20} color="#4ECDC4" />
+              </TouchableOpacity>
               {formErrors.fromLocation && (
                 <Text style={styles.errorText}>{formErrors.fromLocation}</Text>
               )}
@@ -143,20 +193,34 @@ export default function OfferRideScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>To</Text>
-              <View style={styles.inputContainer}>
+              <TouchableOpacity 
+                style={styles.inputContainer}
+                onPress={() => setShowToLocationPicker(true)}
+              >
                 <MapPin size={20} color="#9CA3AF" />
-                <TextInput
-                  style={styles.input}
-                  value={toLocation}
-                  onChangeText={setToLocation}
-                  placeholder="Enter destination"
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
+                <Text style={[styles.input, styles.inputText, !toLocation && styles.placeholderText]}>
+                  {toLocation || 'Select destination'}
+                </Text>
+                <Map size={20} color="#4ECDC4" />
+              </TouchableOpacity>
               {formErrors.toLocation && (
                 <Text style={styles.errorText}>{formErrors.toLocation}</Text>
               )}
             </View>
+
+            {/* Route Information */}
+            {estimatedDistance && estimatedDuration && (
+              <View style={styles.routeInfo}>
+                <View style={styles.routeInfoItem}>
+                  <Text style={styles.routeInfoLabel}>Distance:</Text>
+                  <Text style={styles.routeInfoValue}>{estimatedDistance}</Text>
+                </View>
+                <View style={styles.routeInfoItem}>
+                  <Text style={styles.routeInfoLabel}>Duration:</Text>
+                  <Text style={styles.routeInfoValue}>{estimatedDuration}</Text>
+                </View>
+              </View>
+            )}
           </View>
 
           {/* Date & Time */}
@@ -289,6 +353,23 @@ export default function OfferRideScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Location Pickers */}
+      <LocationPicker
+        visible={showFromLocationPicker}
+        onClose={() => setShowFromLocationPicker(false)}
+        onLocationSelect={handleFromLocationSelect}
+        title="Select Pickup Location"
+        initialLocation={fromLocationData}
+      />
+
+      <LocationPicker
+        visible={showToLocationPicker}
+        onClose={() => setShowToLocationPicker(false)}
+        onLocationSelect={handleToLocationSelect}
+        title="Select Destination"
+        initialLocation={toLocationData}
+      />
     </SafeAreaView>
   );
 }
@@ -376,7 +457,37 @@ const styles = StyleSheet.create({
     color: '#2d3748',
   },
   inputText: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#2d3748',
+    paddingVertical: 14,
+  },
+  placeholderText: {
     color: '#9CA3AF',
+  },
+  routeInfo: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+  },
+  routeInfoItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  routeInfoLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#374151',
+  },
+  routeInfoValue: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#4ECDC4',
   },
   row: {
     flexDirection: 'row',
